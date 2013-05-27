@@ -1,9 +1,15 @@
-import csv
+﻿import csv
 import re
 import string
+import os
 
-def printRate(file):
-    stocks = []
+os.chdir("E:\\StockData")
+files = os.listdir("E:\\StockData")
+
+"""證券代號(0) 證券名稱(1) 成交股數(2) 成交筆數(3) 成交金額(4) 開盤價(5) 最高價(6) 最低價(7) 收盤價(8) 漲跌(9)(+/-) 漲跌價差(10) 最後揭示買價(11) 最後揭示買量(12) 最後揭示賣價(13) 最後揭示賣量(14) 本益比(15)"""
+
+def getStockMap(file):
+    stockMap = dict()
     with open(file, 'r') as f:
         reader = csv.reader(f)
         for row in reader:
@@ -13,50 +19,106 @@ def printRate(file):
                 try:
                     float(price)
                     if id[0] != '0' and id.isdigit():
-                        stocks.append(row)
+                        stockMap[id] = row
                 except:
                     pass
+
+    return stockMap
+
+def getStockList(file):
+    stockList = []
+    with open(file, 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if len(row) == 16:
+                id = row[0]
+                price = row[8]
+                try:
+                    float(price)
+                    if id[0] != '0' and id.isdigit():
+                        stockList.append(row)
+                except:
+                    pass
+
+    return stockList
+
+def CalTotalRate(stocks, yesterdayStocks):
+    value1 = 0
+    total1 = 0
+
+    value2 = 0
+    total2 = 0
+
+    for s in stocks:
+        id = s[0]
+        try:
+            ys = yesterdayStocks[id]
+            yclose = float(ys[8])
+            close = float(s[8])
+            changeRate = (close - yclose) / yclose
+            tradeValue = float(s[4].replace(',', ''))
+            value1 += changeRate * tradeValue
+            total1 += tradeValue
+        except:
+            pass
+
+        try:
+            open = float(s[5])
+            close = float(s[8])
+            changeRate = (close - open) / open
+            tradeValue = float(s[4].replace(',', ''))
+            value2 += changeRate * tradeValue
+            total2 += tradeValue
+        except:
+            pass
+
+    return [(value1 / total1), (value2 / total2)]
+
+def getRate(file1, file2):
+    stocks = getStockList(file1)
 
     if len(stocks) == 0:
         return
 
-    """證券代號,證券名稱,成交股數,成交筆數,成交金額,開盤價,最高價,最低價,收盤價,漲跌(+/-),漲跌價差,最後揭示買價,最後揭示買量,最後揭示賣價,最後揭示賣量,本益比"""
     stocks = sorted(stocks, key=lambda stock: float(stock[8]), reverse=True)
-
 
     big = stocks[0:len(stocks)//3]
     medium = stocks[len(stocks)//3: len(stocks)*2//3]
     small = stocks[len(stocks)*2//3: len(stocks)]
 
-    bigRate = CalTotalRate(big)
-    mediumRate = CalTotalRate(medium)
-    smallRate = CalTotalRate(small)
+    yesterdayStocks = getStockMap(file2)
 
-    print(file)
-    print("高:", bigRate)
-    print("中:", mediumRate)
-    print("低:", smallRate)
-    if smallRate < 0:
-        print("漲")
-    else:
-        print("跌")
-    print("")
+    bigRate = CalTotalRate(big, yesterdayStocks)
+    mediumRate = CalTotalRate(medium, yesterdayStocks)
+    smallRate = CalTotalRate(small, yesterdayStocks)
 
-def CalTotalRate(stocks):
-    value = 0
-    total = 0
+    day = file1.split('.')[0]
+    d = "{0}/{1}/{2}".format(day[0:4], day[4:6], day[6:8])
+    b1 = "{0:.5f}".format(bigRate[0])
+    m1 = "{0:.5f}".format(mediumRate[0])
+    s1 = "{0:.5f}".format(smallRate[0])
+    b2 = "{0:.5f}".format(bigRate[1])
+    m2 = "{0:.5f}".format(mediumRate[1])
+    s2 = "{0:.5f}".format(smallRate[1])
 
-    for s in stocks:
-        open = float(s[5])
-        close = float(s[8])
-        changeRate = (close - open) / open
-        tradeValue = float(s[4].replace(',', ''))
-        value += changeRate * tradeValue
-        total += tradeValue
+    return [d, b1, m1, s1, b2, m2, s2]
 
-    return (value / total)
+datas = []
 
-printRate('Data\\20130101.csv');
-printRate('Data\\20130102.csv');
+for i in range(len(files)-1):
+    data = getRate(files[i+1], files[i])
+    datas.append(data)
 
+with open('E:\\result1.csv', 'wb') as f:
+    writer = csv.writer(f)
+    writer.writerow(["date", "high", "medium", "low"])
+    for data in datas:
+        writer.writerow(data[0:4])
 
+with open('E:\\result2.csv', 'wb') as f:
+    writer = csv.writer(f)
+    writer.writerow(["date", "high", "medium", "low"])
+    for data in datas:
+        writer.writerow([data[0], data[4], data[5], data[6]])
+
+print("done")
