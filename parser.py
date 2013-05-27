@@ -1,4 +1,6 @@
-﻿import csv
+﻿# -*- coding: utf-8 -*-
+
+import csv
 import re
 import string
 import os
@@ -6,7 +8,35 @@ import os
 os.chdir("E:\\StockData")
 files = os.listdir("E:\\StockData")
 
-"""證券代號(0) 證券名稱(1) 成交股數(2) 成交筆數(3) 成交金額(4) 開盤價(5) 最高價(6) 最低價(7) 收盤價(8) 漲跌(9)(+/-) 漲跌價差(10) 最後揭示買價(11) 最後揭示買量(12) 最後揭示賣價(13) 最後揭示賣量(14) 本益比(15)"""
+#指數(0) 收盤指數(1) 漲跌(2)(+/-) 漲跌點數(3) 漲跌百分比(4)(%)
+#加權股價指數
+tseaName = u'加權股價指數'.encode("utf-8")
+
+
+#證券代號(0) 證券名稱(1) 成交股數(2) 成交筆數(3) 成交金額(4) 開盤價(5) 最高價(6) 最低價(7) 收盤價(8) 漲跌(9)(+/-) 漲跌價差(10) 最後揭示買價(11) 最後揭示買量(12) 最後揭示賣價(13) 最後揭示賣量(14) 本益比(15)
+
+def getTsea(file):
+    with open(file, 'r') as f:
+        reader = csv.reader(f)
+        i = 0
+        for row in reader:
+            i += 1
+            if i != 3:
+                continue
+
+            price = float(row[1].replace(',', ''))
+            changeRate = float(row[4]) / 100
+            return [price, changeRate]
+
+def getTesaRate(file1, file2):
+    tsea1 = getTsea(file1)
+    tsea2 = getTsea(file2)
+
+    changeRate1 = (tsea1[0] - tsea2[0]) / tsea2[0]
+    changeRate2 = tsea1[1]
+
+    return [changeRate1, changeRate2]
+
 
 def getStockMap(file):
     stockMap = dict()
@@ -101,7 +131,9 @@ def getRate(file1, file2):
     m2 = "{0:.5f}".format(mediumRate[1])
     s2 = "{0:.5f}".format(smallRate[1])
 
-    return [d, b1, m1, s1, b2, m2, s2]
+    tsea = getTesaRate(files[i+1], files[i])
+
+    return [d, b1, m1, s1, tsea[0], b2, m2, s2, tsea[1]]
 
 datas = []
 
@@ -111,14 +143,14 @@ for i in range(len(files)-1):
 
 with open('E:\\result1.csv', 'wb') as f:
     writer = csv.writer(f)
-    writer.writerow(["date", "high", "medium", "low"])
+    writer.writerow(["date", "high", "medium", "low", "tsea"])
     for data in datas:
-        writer.writerow(data[0:4])
+        writer.writerow(data[0:5])
 
 with open('E:\\result2.csv', 'wb') as f:
     writer = csv.writer(f)
-    writer.writerow(["date", "high", "medium", "low"])
+    writer.writerow(["date", "high", "medium", "low", "tsea"])
     for data in datas:
-        writer.writerow([data[0], data[4], data[5], data[6]])
+        writer.writerow([data[0], data[5], data[6], data[7], data[8]])
 
 print("done")
