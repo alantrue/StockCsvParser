@@ -33,9 +33,8 @@ def getTesaRate(file1, file2):
     tsea2 = getTsea(file2)
 
     changeRate1 = (tsea1[0] - tsea2[0]) / tsea2[0]
-    changeRate2 = tsea1[1]
 
-    return [changeRate1, changeRate2]
+    return changeRate1
 
 
 def getStockMap(file):
@@ -133,7 +132,7 @@ def getRate(file1, file2):
 
     tsea = getTesaRate(files[i+1], files[i])
 
-    return [d, b1, m1, s1, tsea[0], b2, m2, s2, tsea[1]]
+    return [d, b1, m1, s1, tsea, b2, m2, s2]
 
 datas = []
 
@@ -149,8 +148,8 @@ with open('E:\\result1.csv', 'wb') as f:
 
 with open('E:\\result2.csv', 'wb') as f:
     writer = csv.writer(f)
-    writer.writerow(["date", "high", "medium", "low", "tsea"])
+    writer.writerow(["date", "high", "medium", "low"])
     for data in datas:
-        writer.writerow([data[0], data[5], data[6], data[7], data[8]])
+        writer.writerow([data[0], data[5], data[6], data[7]])
 
 print("done")
